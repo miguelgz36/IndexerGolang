@@ -1,3 +1,3 @@
-module github.com/miguelgz/indexer-zincsearch
+module github.com/miguelgz36/IndexerGolang
 
 go 1.16
