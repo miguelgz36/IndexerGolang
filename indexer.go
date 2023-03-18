@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	argsWithoutProg := os.Args[1:][0]
-	fmt.Println(argsWithoutProg)
-	data := ioindexer.GetDataBody()
+	nameFolderData := os.Args[1:][0]
+	fmt.Println(nameFolderData)
+	data := ioindexer.GetDataBody(nameFolderData)
 	record.PostData(data)
 }
