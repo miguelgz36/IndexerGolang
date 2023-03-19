@@ -11,24 +11,39 @@ func check(er error) {
 	}
 }
 
-func GetDataBody(nameFolderData string) string {
-	c, err := ioutil.ReadDir("./data/" + nameFolderData)
+func GetListOfEmails(nameFolderData string) []string {
+	emailsFileInfo, err := ioutil.ReadDir("./data/" + nameFolderData + "/maildir")
 	check(err)
 
-	for _, entry := range c {
-		fmt.Println(" ", entry.Name(), entry.IsDir())
+	nameEmailsFolders := make([]string, 0)
+	for _, entry := range emailsFileInfo {
+		if entry.IsDir() {
+			nameEmailsFolders = append(nameEmailsFolders, entry.Name())
+		}
 	}
+	return nameEmailsFolders
+}
 
-	return `{
-        "Athlete": "DEMTSCHENKO, Albert",
-        "City": "Turin",
-        "Country": "RUS",
-        "Discipline": "Luge",
-        "Event": "Singles",
-        "Gender": "Men",
-        "Medal": "Silver",
-        "Season": "winter",
-        "Sport": "Luge",
-        "Year": 2006
-    }`
+func ReadEmails(nameFolderData string, path string, textEmails *[]string) {
+	dir := "./data/" + nameFolderData + "/maildir/" + path
+	nameEmailsSubFolders, err := ioutil.ReadDir(dir)
+	check(err)
+
+	for _, subDir := range nameEmailsSubFolders {
+		if subDir.IsDir() {
+			ReadEmails(nameFolderData, path+"/"+subDir.Name(), textEmails)
+		} else {
+			fmt.Println("email en: " + dir)
+			*textEmails = append(*textEmails, readEmail(dir+"/"+subDir.Name()))
+		}
+	}
+}
+
+func readEmail(filePath string) string {
+	data, err := ioutil.ReadFile(filePath)
+	check(err)
+
+	text := string(data)
+	fmt.Println("texto: " + text)
+	return text
 }
