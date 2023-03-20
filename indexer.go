@@ -15,7 +15,7 @@ func main() {
 	emailsText := make([]string, 0)
 
 	for i, nameEmail := range nameEmails {
-		if i < 2 {
+		if i < 1 {
 			ioindexer.ReadEmails(nameFolderData, nameEmail, &emailsText)
 		}
 	}

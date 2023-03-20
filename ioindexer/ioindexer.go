@@ -1,8 +1,10 @@
 package ioindexer
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 )
 
 func check(er error) {
@@ -36,8 +38,56 @@ func ReadEmails(nameFolderData string, path string, textEmails *[]string) {
 			fmt.Println("email en: " + dir)
 			text := readEmail(dir + "/" + subDir.Name())
 			*textEmails = append(*textEmails, text)
+			readText(text)
 		}
 	}
+}
+
+func customSplitFunc(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
+func readText(text string) {
+	lines := strings.FieldsFunc(text, customSplitFunc)
+	indexMessage := 0
+	mapOfProperties := map[string]string{}
+
+	for indexLine, line := range lines {
+		fmt.Println("LINEA:" + line)
+		indexFirstSeparator := strings.Index(line, ":")
+		if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
+			key := line[:indexFirstSeparator]
+			value := strings.ReplaceAll(line[indexFirstSeparator+1:], " ", "")
+			mapOfProperties[key] = value
+
+			fmt.Printf("KEY: %s VALUE: %s\n", key, value)
+		}
+		isLastParam := strings.Contains(line, "X-FileName")
+		if isLastParam {
+			indexMessage = indexLine + 1
+			break
+		}
+	}
+
+	mapOfProperties["message"] = strings.Join(lines[indexMessage:], "")
+
+	convertFromMapToJson(mapOfProperties)
+}
+
+func convertFromMapToJson(mapToConvert map[string]string) {
+	jsonBytes, err := json.MarshalIndent(mapToConvert, " ", "")
+	check(err)
+
+	jsonString := string(jsonBytes)
+
+	fmt.Println("JSON:" + jsonString)
+}
+
+func replaceRunes(r rune) rune {
+	str := string(r)
+	str = strings.Replace(str, "<", "(", -1)
+	str = strings.Replace(str, ">", ")", -1)
+	return []rune(str)[0]
 }
 
 func readEmail(filePath string) string {
@@ -45,6 +95,8 @@ func readEmail(filePath string) string {
 	check(err)
 
 	text := string(data)
-	fmt.Println("texto: " + text)
+	text = strings.Map(replaceRunes, text)
+
+	fmt.Println("TEXTO----: " + text)
 	return text
 }
