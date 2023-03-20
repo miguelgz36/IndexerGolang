@@ -34,7 +34,8 @@ func ReadEmails(nameFolderData string, path string, textEmails *[]string) {
 			ReadEmails(nameFolderData, path+"/"+subDir.Name(), textEmails)
 		} else {
 			fmt.Println("email en: " + dir)
-			*textEmails = append(*textEmails, readEmail(dir+"/"+subDir.Name()))
+			text := readEmail(dir + "/" + subDir.Name())
+			*textEmails = append(*textEmails, text)
 		}
 	}
 }
