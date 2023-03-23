@@ -10,7 +10,7 @@ import (
 )
 
 func PostData(data string) {
-	req, err := http.NewRequest("POST", "http://localhost:4080/api/games3/_doc", strings.NewReader(data))
+	req, err := http.NewRequest("POST", "http://localhost:4080/api/test/_doc", strings.NewReader(data))
 	if err != nil {
 		fmt.Println(err.Error())
 	}

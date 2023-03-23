@@ -1,14 +1,25 @@
 package ioindexer
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
+
+	"github.com/miguelgz36/IndexerGolang/record"
 )
 
 func check(er error) {
 	if er != nil {
+		panic(er)
+	}
+}
+
+func checkFile(er error, file *os.File) {
+	if er != nil {
+		file.Close()
 		panic(er)
 	}
 }
@@ -26,52 +37,19 @@ func GetListOfEmails(nameFolderData string) []string {
 	return nameEmailsFolders
 }
 
-func ReadEmails(nameFolderData string, path string, textEmails *[]string) {
+func ReadEmails(nameFolderData string, path string) {
 	dir := "./data/" + nameFolderData + "/maildir/" + path
 	nameEmailsSubFolders, err := ioutil.ReadDir(dir)
 	check(err)
 
 	for _, subDir := range nameEmailsSubFolders {
 		if subDir.IsDir() {
-			ReadEmails(nameFolderData, path+"/"+subDir.Name(), textEmails)
+			ReadEmails(nameFolderData, path+"/"+subDir.Name())
 		} else {
 			fmt.Println("email en: " + dir)
-			text := readEmail(dir + "/" + subDir.Name())
-			*textEmails = append(*textEmails, text)
-			readText(text)
+			readEmail(dir + "/" + subDir.Name())
 		}
 	}
-}
-
-func customSplitFunc(r rune) bool {
-	return r == '\n' || r == '\r'
-}
-
-func readText(text string) {
-	lines := strings.FieldsFunc(text, customSplitFunc)
-	indexMessage := 0
-	mapOfProperties := map[string]string{}
-
-	for indexLine, line := range lines {
-		fmt.Println("LINEA:" + line)
-		indexFirstSeparator := strings.Index(line, ":")
-		if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
-			key := line[:indexFirstSeparator]
-			value := strings.ReplaceAll(line[indexFirstSeparator+1:], " ", "")
-			mapOfProperties[key] = value
-
-			fmt.Printf("KEY: %s VALUE: %s\n", key, value)
-		}
-		isLastParam := strings.Contains(line, "X-FileName")
-		if isLastParam {
-			indexMessage = indexLine + 1
-			break
-		}
-	}
-
-	mapOfProperties["message"] = strings.Join(lines[indexMessage:], "")
-
-	convertFromMapToJson(mapOfProperties)
 }
 
 func convertFromMapToJson(mapToConvert map[string]string) {
@@ -81,6 +59,7 @@ func convertFromMapToJson(mapToConvert map[string]string) {
 	jsonString := string(jsonBytes)
 
 	fmt.Println("JSON:" + jsonString)
+	record.PostData(jsonString)
 }
 
 func replaceRunes(r rune) rune {
@@ -90,13 +69,41 @@ func replaceRunes(r rune) rune {
 	return []rune(str)[0]
 }
 
-func readEmail(filePath string) string {
-	data, err := ioutil.ReadFile(filePath)
-	check(err)
+func readEmail(filePath string) {
 
-	text := string(data)
-	text = strings.Map(replaceRunes, text)
+	file, err := os.Open(filePath)
+	checkFile(err, file)
 
-	fmt.Println("TEXTO----: " + text)
-	return text
+	scanner := bufio.NewScanner(file)
+
+	mapOfProperties := map[string]string{}
+	readingParams := true
+
+	fmt.Println("READING:" + file.Name())
+
+	for scanner.Scan() {
+		line := strings.Map(replaceRunes, scanner.Text())
+		fmt.Println("LINEA:" + line)
+
+		if readingParams {
+			indexFirstSeparator := strings.Index(line, ":")
+			if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
+				key := line[:indexFirstSeparator]
+				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+				mapOfProperties[key] = value
+			}
+			if strings.Contains(line, "X-FileName") {
+				readingParams = false
+			}
+		} else {
+			mapOfProperties["message"] = mapOfProperties["message"] + line + "\n"
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("ERROR:" + err.Error())
+	}
+	file.Close()
+
+	convertFromMapToJson(mapOfProperties)
 }
