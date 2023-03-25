@@ -1,12 +1,25 @@
 package ioindexer
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
+
+	"github.com/miguelgz36/IndexerGolang/record"
 )
 
 func check(er error) {
 	if er != nil {
+		panic(er)
+	}
+}
+
+func checkFile(er error, file *os.File) {
+	if er != nil {
+		file.Close()
 		panic(er)
 	}
 }
@@ -24,27 +37,67 @@ func GetListOfEmails(nameFolderData string) []string {
 	return nameEmailsFolders
 }
 
-func ReadEmails(nameFolderData string, path string, textEmails *[]string) {
+func ReadEmails(nameFolderData string, path string) {
 	dir := "./data/" + nameFolderData + "/maildir/" + path
 	nameEmailsSubFolders, err := ioutil.ReadDir(dir)
 	check(err)
 
 	for _, subDir := range nameEmailsSubFolders {
 		if subDir.IsDir() {
-			ReadEmails(nameFolderData, path+"/"+subDir.Name(), textEmails)
+			ReadEmails(nameFolderData, path+"/"+subDir.Name())
 		} else {
 			fmt.Println("email en: " + dir)
-			text := readEmail(dir + "/" + subDir.Name())
-			*textEmails = append(*textEmails, text)
+			readEmail(dir + "/" + subDir.Name())
 		}
 	}
 }
 
-func readEmail(filePath string) string {
-	data, err := ioutil.ReadFile(filePath)
-	check(err)
+func convertFromMapToJson(mapToConvert map[string]string) {
 
-	text := string(data)
-	fmt.Println("texto: " + text)
-	return text
+	jsonData, err := json.Marshal(mapToConvert)
+	check(err)
+	record.PostData(string(jsonData))
+}
+
+func readEmail(filePath string) {
+
+	file, err := os.Open(filePath)
+	checkFile(err, file)
+
+	scanner := bufio.NewScanner(file)
+
+	mapOfProperties := map[string]string{}
+	readingParams := true
+	previousParameter := ""
+
+	fmt.Println("READING:" + file.Name())
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("LINEA:" + line)
+
+		if readingParams {
+			indexFirstSeparator := strings.Index(line, ":")
+			if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
+				key := line[:indexFirstSeparator]
+				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+				previousParameter = key
+				mapOfProperties[key] = value
+			} else {
+				mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
+			}
+			if strings.Contains(line, "X-FileName") {
+				readingParams = false
+			}
+		} else {
+			mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("ERROR:" + err.Error())
+	}
+	file.Close()
+
+	convertFromMapToJson(mapOfProperties)
 }
