@@ -53,20 +53,10 @@ func ReadEmails(nameFolderData string, path string) {
 }
 
 func convertFromMapToJson(mapToConvert map[string]string) {
-	jsonBytes, err := json.MarshalIndent(mapToConvert, " ", "")
+
+	jsonData, err := json.Marshal(mapToConvert)
 	check(err)
-
-	jsonString := string(jsonBytes)
-
-	fmt.Println("JSON:" + jsonString)
-	record.PostData(jsonString)
-}
-
-func replaceRunes(r rune) rune {
-	str := string(r)
-	str = strings.Replace(str, "<", "(", -1)
-	str = strings.Replace(str, ">", ")", -1)
-	return []rune(str)[0]
+	record.PostData(string(jsonData))
 }
 
 func readEmail(filePath string) {
@@ -78,11 +68,12 @@ func readEmail(filePath string) {
 
 	mapOfProperties := map[string]string{}
 	readingParams := true
+	previousParameter := ""
 
 	fmt.Println("READING:" + file.Name())
 
 	for scanner.Scan() {
-		line := strings.Map(replaceRunes, scanner.Text())
+		line := scanner.Text()
 		fmt.Println("LINEA:" + line)
 
 		if readingParams {
@@ -90,13 +81,16 @@ func readEmail(filePath string) {
 			if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
 				key := line[:indexFirstSeparator]
 				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+				previousParameter = key
 				mapOfProperties[key] = value
+			} else {
+				mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
 			}
 			if strings.Contains(line, "X-FileName") {
 				readingParams = false
 			}
 		} else {
-			mapOfProperties["message"] = mapOfProperties["message"] + line + "\n"
+			mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
 		}
 	}
 

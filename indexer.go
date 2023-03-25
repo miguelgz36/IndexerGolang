@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/miguelgz36/IndexerGolang/ioindexer"
-	//"github.com/miguelgz36/IndexerGolang/record"
 )
 
 func main() {
@@ -19,5 +18,4 @@ func main() {
 		}
 	}
 
-	//record.PostData(data)
 }
