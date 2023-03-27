@@ -3,7 +3,6 @@ package record
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/miguelgz36/IndexerGolang/connection"
@@ -27,5 +26,4 @@ func doPost(req *http.Request) {
 		fmt.Println(err.Error())
 	}
 	defer resp.Body.Close()
-	fmt.Println(strconv.Itoa(resp.StatusCode))
 }
