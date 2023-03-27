@@ -3,7 +3,6 @@ package ioindexer
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -46,7 +45,6 @@ func ReadEmails(nameFolderData string, path string) {
 		if subDir.IsDir() {
 			ReadEmails(nameFolderData, path+"/"+subDir.Name())
 		} else {
-			fmt.Println("email en: " + dir)
 			readEmail(dir + "/" + subDir.Name())
 		}
 	}
@@ -70,11 +68,8 @@ func readEmail(filePath string) {
 	readingParams := true
 	previousParameter := ""
 
-	fmt.Println("READING:" + file.Name())
-
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println("LINEA:" + line)
 
 		if readingParams {
 			indexFirstSeparator := strings.Index(line, ":")
@@ -94,9 +89,7 @@ func readEmail(filePath string) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		fmt.Println("ERROR:" + err.Error())
-	}
+	check(err)
 	file.Close()
 
 	convertFromMapToJson(mapOfProperties)
