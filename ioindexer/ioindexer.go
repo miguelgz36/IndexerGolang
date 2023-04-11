@@ -23,6 +23,8 @@ func checkFile(er error, file *os.File) {
 	}
 }
 
+var keysOfEmailToIndex = [4]string{"to", "from", "message", "subject"}
+
 func GetListOfEmails(nameFolderData string) []string {
 	emailsFileInfo, err := ioutil.ReadDir("./data/" + nameFolderData + "/maildir")
 	check(err)
@@ -74,10 +76,12 @@ func readEmail(filePath string) {
 		if readingParams {
 			indexFirstSeparator := strings.Index(line, ":")
 			if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
-				key := line[:indexFirstSeparator]
-				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
-				previousParameter = key
-				mapOfProperties[key] = value
+				key := strings.ToLower(line[:indexFirstSeparator])
+				if containsKey(key) {
+					value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+					previousParameter = key
+					mapOfProperties[key] = value
+				}
 			} else {
 				mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
 			}
@@ -93,4 +97,13 @@ func readEmail(filePath string) {
 	file.Close()
 
 	convertFromMapToJson(mapOfProperties)
+}
+
+func containsKey(searchString string) bool {
+	for _, key := range keysOfEmailToIndex {
+		if key == searchString {
+			return true
+		}
+	}
+	return false
 }
