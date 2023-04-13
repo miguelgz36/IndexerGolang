@@ -9,17 +9,22 @@ import (
 )
 
 func PostData(data string) {
-
 	req, err := http.NewRequest("POST", "http://localhost:4080/api/emails/_doc", strings.NewReader(data))
 	errors.Check(err)
 
 	connection.SetHeaders(req)
 
-	doPost(req)
+	resp, err := doPost(req)
+
+	if resp != nil {
+		resp.Body.Close()
+	}
+	if err != nil {
+		PostData(data)
+	}
 }
 
-func doPost(req *http.Request) {
+func doPost(req *http.Request) (*http.Response, error) {
 	resp, err := http.DefaultClient.Do(req)
-	errors.Check(err)
-	defer resp.Body.Close()
+	return resp, err
 }

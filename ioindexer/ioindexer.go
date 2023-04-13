@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/miguelgz36/IndexerGolang/errors"
 	"github.com/miguelgz36/IndexerGolang/record"
@@ -47,46 +48,46 @@ func convertFromMapToJson(mapToConvert map[string]string) {
 }
 
 func readEmail(filePath string) {
+	time.Sleep(1 * time.Millisecond)
 
-	file, err := os.Open(filePath)
-	errors.CheckFile(err, file)
+	go func() {
 
-	scanner := bufio.NewScanner(file)
+		file, err := os.Open(filePath)
+		errors.CheckFile(err, file)
 
-	mapOfProperties := map[string]string{}
-	readingParams := true
-	previousParameter := ""
+		scanner := bufio.NewScanner(file)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		readParam(readingParams, line, previousParameter, mapOfProperties)
-	}
+		mapOfProperties := map[string]string{}
+		readingParams := true
+		previousParameter := ""
 
-	errors.Check(err)
-	file.Close()
+		for scanner.Scan() {
+			line := scanner.Text()
+			if readingParams {
 
-	convertFromMapToJson(mapOfProperties)
-}
-
-func readParam(readingParams bool, line string, previousParameter string, mapOfProperties map[string]string) {
-	if readingParams {
-		indexFirstSeparator := strings.Index(line, ":")
-		if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
-			key := strings.ToLower(line[:indexFirstSeparator])
-			if containsKey(key) {
-				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
-				previousParameter = key
-				mapOfProperties[key] = value
+				indexFirstSeparator := strings.Index(line, ":")
+				if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
+					key := strings.ToLower(line[:indexFirstSeparator])
+					if containsKey(key) {
+						value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+						previousParameter = key
+						mapOfProperties[key] = value
+					}
+				} else {
+					mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
+				}
+				if strings.Contains(line, "X-FileName") {
+					readingParams = false
+				}
+			} else {
+				mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
 			}
-		} else {
-			mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
 		}
-		if strings.Contains(line, "X-FileName") {
-			readingParams = false
-		}
-	} else {
-		mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
-	}
+		file.Close()
+		errors.Check(err)
+		convertFromMapToJson(mapOfProperties)
+	}()
+
 }
 
 func containsKey(searchString string) bool {
