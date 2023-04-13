@@ -7,27 +7,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/miguelgz36/IndexerGolang/errors"
 	"github.com/miguelgz36/IndexerGolang/record"
 )
-
-func check(er error) {
-	if er != nil {
-		panic(er)
-	}
-}
-
-func checkFile(er error, file *os.File) {
-	if er != nil {
-		file.Close()
-		panic(er)
-	}
-}
 
 var keysOfEmailToIndex = [4]string{"to", "from", "message", "subject"}
 
 func GetListOfEmails(nameFolderData string) []string {
 	emailsFileInfo, err := ioutil.ReadDir("./data/" + nameFolderData + "/maildir")
-	check(err)
+	errors.Check(err)
 
 	nameEmailsFolders := make([]string, 0)
 	for _, entry := range emailsFileInfo {
@@ -41,7 +29,7 @@ func GetListOfEmails(nameFolderData string) []string {
 func ReadEmails(nameFolderData string, path string) {
 	dir := "./data/" + nameFolderData + "/maildir/" + path
 	nameEmailsSubFolders, err := ioutil.ReadDir(dir)
-	check(err)
+	errors.Check(err)
 
 	for _, subDir := range nameEmailsSubFolders {
 		if subDir.IsDir() {
@@ -53,16 +41,15 @@ func ReadEmails(nameFolderData string, path string) {
 }
 
 func convertFromMapToJson(mapToConvert map[string]string) {
-
 	jsonData, err := json.Marshal(mapToConvert)
-	check(err)
+	errors.Check(err)
 	record.PostData(string(jsonData))
 }
 
 func readEmail(filePath string) {
 
 	file, err := os.Open(filePath)
-	checkFile(err, file)
+	errors.CheckFile(err, file)
 
 	scanner := bufio.NewScanner(file)
 
@@ -72,31 +59,34 @@ func readEmail(filePath string) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		if readingParams {
-			indexFirstSeparator := strings.Index(line, ":")
-			if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
-				key := strings.ToLower(line[:indexFirstSeparator])
-				if containsKey(key) {
-					value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
-					previousParameter = key
-					mapOfProperties[key] = value
-				}
-			} else {
-				mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
-			}
-			if strings.Contains(line, "X-FileName") {
-				readingParams = false
-			}
-		} else {
-			mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
-		}
+		readParam(readingParams, line, previousParameter, mapOfProperties)
 	}
 
-	check(err)
+	errors.Check(err)
 	file.Close()
 
 	convertFromMapToJson(mapOfProperties)
+}
+
+func readParam(readingParams bool, line string, previousParameter string, mapOfProperties map[string]string) {
+	if readingParams {
+		indexFirstSeparator := strings.Index(line, ":")
+		if indexFirstSeparator < len(line)-1 && indexFirstSeparator > 1 {
+			key := strings.ToLower(line[:indexFirstSeparator])
+			if containsKey(key) {
+				value := strings.Replace(line[indexFirstSeparator+1:], " ", "", 1)
+				previousParameter = key
+				mapOfProperties[key] = value
+			}
+		} else {
+			mapOfProperties[previousParameter] = mapOfProperties[previousParameter] + "\n" + line
+		}
+		if strings.Contains(line, "X-FileName") {
+			readingParams = false
+		}
+	} else {
+		mapOfProperties["message"] = mapOfProperties["message"] + "\n" + line
+	}
 }
 
 func containsKey(searchString string) bool {

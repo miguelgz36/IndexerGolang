@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	f, err := os.Create("cpu.prof")
 	if err != nil {
 		log.Fatal(err)
