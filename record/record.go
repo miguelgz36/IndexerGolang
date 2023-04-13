@@ -1,19 +1,17 @@
 package record
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/miguelgz36/IndexerGolang/connection"
+	"github.com/miguelgz36/IndexerGolang/errors"
 )
 
 func PostData(data string) {
 
 	req, err := http.NewRequest("POST", "http://localhost:4080/api/emails/_doc", strings.NewReader(data))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	errors.Check(err)
 
 	connection.SetHeaders(req)
 
@@ -22,8 +20,6 @@ func PostData(data string) {
 
 func doPost(req *http.Request) {
 	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	errors.Check(err)
 	defer resp.Body.Close()
 }

@@ -19,3 +19,4 @@ data/**
 bin/*
 indexer
 cpu.prof
+IndexerGolang
